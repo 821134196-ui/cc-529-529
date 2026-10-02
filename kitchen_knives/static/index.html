@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>后厨刀具流转管理</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">刀</span>
+    <div>
+      <h1>后厨刀具流转管理</h1>
+      <div class="sub">按编号登记 · 逐刀留痕 · 最后接触人可追溯</div>
+    </div>
+  </div>
+  <div class="shift-box">
+    <div id="shiftBadge" class="shift-badge">无进行中班次</div>
+    <div class="shift-actions">
+      <button class="btn btn-ghost" id="btnStartShift">开班</button>
+      <button class="btn btn-ghost" id="btnHandover">跨班交接</button>
+      <button class="btn btn-ghost" id="btnCloseShift">关班核对</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="racks">工位刀架图</button>
+  <button class="tab" data-tab="scan">领还扫码</button>
+  <button class="tab" data-tab="care">保养排程</button>
+  <button class="tab" data-tab="quarantine">异常隔离</button>
+  <button class="tab" data-tab="ledger">流转台账</button>
+</nav>
+
+<main>
+  <!-- ========== 刀架图 ========== -->
+  <section id="tab-racks" class="panel active">
+    <div class="panel-head">
+      <div>
+        <h2>工位刀架图</h2>
+        <p>按刀架真实槽位排列；空槽即为当前缺件，黄黑条纹槽位为隔离/冻结刀具。</p>
+      </div>
+      <div class="legend">
+        <span><i class="lg lg-in"></i>在架</span>
+        <span><i class="lg lg-out"></i>缺件（领用未还）</span>
+        <span><i class="lg lg-q"></i>待修隔离</span>
+        <span><i class="lg lg-lost"></i>遗失冻结</span>
+        <span><i class="lg lg-care"></i>磨刀/待复检</span>
+      </div>
+    </div>
+    <div id="racks" class="racks"></div>
+  </section>
+
+  <!-- ========== 领还扫码 ========== -->
+  <section id="tab-scan" class="panel">
+    <div class="scan-layout">
+      <div class="scan-main">
+        <h2>领还扫码</h2>
+        <div class="scan-mode">
+          <label><input type="radio" name="scanMode" value="auto" checked> 自动（按刀的状态判领/还）</label>
+          <label><input type="radio" name="scanMode" value="checkout"> 领用</label>
+          <label><input type="radio" name="scanMode" value="checkin"> 归还</label>
+        </div>
+        <div class="scan-row">
+          <input id="scanCode" class="scan-input" placeholder="扫描或输入刀具编号，如 D-001" autocomplete="off">
+          <select id="scanUser" class="user-select"></select>
+          <button id="scanGo" class="btn btn-yellow">确认入账</button>
+        </div>
+        <label class="wash-check"><input type="checkbox" id="scanWashed" checked>
+          归还时已逐件清洗并核对刀身</label>
+        <div id="scanResult" class="scan-result"></div>
+
+        <div class="sim-card">
+          <div class="sim-head">
+            <h3>模拟扫码枪适配器</h3>
+            <span id="simMode" class="sim-mode">手动</span>
+          </div>
+          <p class="hint">真实环境替换为串口/HID 扫码枪驱动，事件结构不变。可播放一段扫码序列模拟班次开始批量领刀。</p>
+          <div class="sim-row">
+            <input id="simCodes" class="sim-input" placeholder="序列：D-001,D-005,D-007（逗号分隔）" value="D-001,D-005,D-007,D-013">
+            <input id="simActor" class="sim-actor" value="王强" title="扫码枪绑定的当前操作人">
+            <button id="simPlay" class="btn btn-dark">播放序列</button>
+            <button id="simStop" class="btn btn-ghost">停止</button>
+          </div>
+          <div id="simLog" class="sim-log"></div>
+        </div>
+      </div>
+      <aside class="scan-side">
+        <div class="alert-card alert-missing">
+          <h3>⚠ 缺件（应在架未在架）</h3>
+          <div id="missingList" class="alert-list"></div>
+        </div>
+        <div class="alert-card alert-unchecked">
+          <h3>◷ 磨刀后未复检（不得发放）</h3>
+          <div id="uncheckedList" class="alert-list"></div>
+        </div>
+        <div class="alert-card alert-overdue">
+          <h3>⏳ 磨刀超期</h3>
+          <div id="overdueList" class="alert-list"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ========== 保养排程 ========== -->
+  <section id="tab-care" class="panel">
+    <div class="panel-head">
+      <div><h2>保养排程</h2>
+      <p>按每把刀登记的磨刀周期排程；磨刀完成后须由<strong>另一位同事</strong>复检锋利度与刀身完整性。</p></div>
+    </div>
+    <div class="care-grid">
+      <div>
+        <h3 class="block-title">磨刀周期表</h3>
+        <table class="grid-table" id="cycleTable">
+          <thead><tr><th>刀号</th><th>刀型</th><th>工位/槽位</th><th>上次磨刀</th><th>周期</th><th>状态</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div>
+        <h3 class="block-title">磨刀 / 复检工单</h3>
+        <div id="jobList" class="job-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 异常隔离 ========== -->
+  <section id="tab-quarantine" class="panel">
+    <div class="panel-head">
+      <div><h2>异常隔离</h2>
+      <p>缺口、刀柄松动 → 待修隔离；遗失 → 冻结；错放工位 → 待归位。隔离/冻结刀具不能重新发放。</p></div>
+      <button class="btn btn-dark" id="btnReportIssue">＋ 登记异常</button>
+    </div>
+    <div id="issueList" class="issue-grid"></div>
+  </section>
+
+  <!-- ========== 台账 ========== -->
+  <section id="tab-ledger" class="panel">
+    <div class="panel-head">
+      <div><h2>流转台账</h2>
+      <p>SQLite 持久化的逐刀流转记录；点击任意刀号可查看完整流转链与最后接触人。</p></div>
+      <input id="ledgerFilter" class="filter-input" placeholder="按刀号筛选，如 D-003">
+    </div>
+    <table class="grid-table" id="ledgerTable">
+      <thead><tr><th>时间</th><th>刀号</th><th>动作</th><th>操作人</th><th>工位/槽位</th><th>备注</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<!-- 刀具详情抽屉 -->
+<div id="drawerMask" class="drawer-mask hidden"></div>
+<aside id="drawer" class="drawer hidden">
+  <button id="drawerClose" class="drawer-close">×</button>
+  <div id="drawerBody"></div>
+</aside>
+
+<!-- 通用弹窗 -->
+<div id="modalMask" class="modal-mask hidden">
+  <div class="modal" id="modal">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modalCancel">取消</button>
+      <button class="btn btn-yellow" id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>
